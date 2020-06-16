@@ -7,4 +7,4 @@ RUN npm install --only=production
 
 COPY . .
 
-CMD ["node", "app"]
+CMD ["node", "server"]
