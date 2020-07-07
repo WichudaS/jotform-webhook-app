@@ -66,7 +66,7 @@ app.post("/jotform/hooks", async function(req, res) {
   const formID = req.fields.formID;
   console.log("formID is = \n" + formID);
 
-  var parsed = JSON.parse(rawreq);
+  var parsed = JSON.parse(raw);
   console.log("parsed = \n" + parsed);
 
   var key = Object.keys(parsed);
