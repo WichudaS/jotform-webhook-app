@@ -44,8 +44,10 @@ app.post("/gcal/hooks", async function(req, res) {
 });
 
 app.post("/jotform/hooks", async function(req, res) {
+  res.status(200); // ห้ามใส่ .end() ตรงนี้เด็ดขาดเพราะจะทำให้ res.send() ข้างล่างส่งไม่ได้
+
   //================= Parse JotForm request to JSON ===============================
-  res.status(200);
+
 
   const fields = JSON.stringify(req.fields);
   console.log("req fields are = \n" + fields);
@@ -60,10 +62,11 @@ app.post("/jotform/hooks", async function(req, res) {
   const rawreq = JSON.stringify(req.fields.rawRequest);
   console.log("\n\n\n raw req is = \n" + rawreq);
 
+
   const formID = req.fields.formID;
   console.log("formID is = \n" + formID);
 
-  var parsed = JSON.parse(raw);
+  var parsed = JSON.parse(rawreq);
   console.log("parsed = \n" + parsed);
 
   var key = Object.keys(parsed);
@@ -86,7 +89,7 @@ app.post("/jotform/hooks", async function(req, res) {
   var allAttendees = parsed["q45_input45"].trim();
   console.log("allAttendees = ");
   console.log(allAttendees);
-  
+
   var attachment = [];
   if (parsed["input162"]) {
     for (var i = 0; i < parsed["input162"].length; i++) {
@@ -97,7 +100,7 @@ app.post("/jotform/hooks", async function(req, res) {
   }
   console.log("attachment = ");
   console.log(attachment);
-  
+
   var allAgendas = [];
   allAgendas.push(
     parsed["q85_agenda1Name"].trim(),
@@ -110,8 +113,8 @@ app.post("/jotform/hooks", async function(req, res) {
     parsed["q207_agenda8Name"].trim(),
     parsed["q212_agenda9Name"].trim(),
     parsed["q217_agenda10Name"].trim()
-    );
-    console.log("allAgendas = ");
+  );
+  console.log("allAgendas = ");
   console.log(allAgendas);
   //result =
 
@@ -139,7 +142,7 @@ app.post("/jotform/hooks", async function(req, res) {
   console.log("JotNoteAndDecision = ");
   console.log(JotNoteAndDecision);
   //result=
-  
+
   //extract JotNote & JotDecision
   var JotNote = [];
   var JotDecision = [];
@@ -161,7 +164,7 @@ app.post("/jotform/hooks", async function(req, res) {
       for (var j = 0; j < datachunk.length; j++) {
         //console.log("datachunk"+(j+1)+" = ");
         //console.log(datachunk[j]);
-        if (datachunk[j]["ชนิดการบันทึก"] == "การบันทึกทั่วไป (Note)") {
+        if (datachunk[j]["ชนิดการบันทึก"] == "Note") {
           chunkN.push(datachunk[j]);
           N = N + 1;
           //console.log("added to chunkN ");
@@ -199,7 +202,7 @@ app.post("/jotform/hooks", async function(req, res) {
 
   var noteLayout = [];
   var decisionLayout = [];
-  
+
   var JotTask = {};
   if(parsed["q86_agenda1Task"]) {
     JotTask["a1"] = JSON.parse(parsed["q86_agenda1Task"]);
@@ -238,23 +241,23 @@ app.post("/jotform/hooks", async function(req, res) {
   console.log("\n\nJotTaskKey = " + JotTaskKey);
   console.log("JotTaskKey.length = " + JotTaskKey.length);
   var taskLayout = [];
-  
+
   var JotResult = [];
   if (parsed["q56_input56"]) {
     JotResult = JSON.parse(parsed["q56_input56"]); //result = [{},{}]
   } else {
     JotResult = [];
   }
-  
+
   console.log("JotResult = ");
   console.log(JotResult);
   var resultLayout = []; //result = [{},{}]
   var resultGroup = {}; //result = {[],[]}
   var taskID = [];
   var existTaskLayout = [];
-  
 
- 
+
+
   //==============================DECLARE FUNCTION==============================
   //check if it's not empty
   function IsNotEmpty(value) {
@@ -264,7 +267,7 @@ app.post("/jotform/hooks", async function(req, res) {
       return false;
     }
   }
-  
+
   //put 'Agenda Name' into layout
   function AgendaLayout(meetingID, allAgendas) {
     // console.log(meetingID);
@@ -299,7 +302,7 @@ app.post("/jotform/hooks", async function(req, res) {
         console.log(chunk);
         let j = 0;
         let k = 0;
-        
+
         while (chunk.length - k > 0) {
           console.log("resultLayout-k =" + (chunk.length - k));
           console.log("j = " + j);
@@ -328,7 +331,7 @@ app.post("/jotform/hooks", async function(req, res) {
   function NoteLayout(JotNote, agendaID) {
     // console.log(JotNote);
     // console.log(allAgendas);
-    
+
     return new Promise((resolve, reject) => {
       if (JotNote) {
         let chunk = [];
@@ -345,7 +348,7 @@ app.post("/jotform/hooks", async function(req, res) {
                 {
                   fields: {
                     "Note Name": JotNote[i][l]["รายละเอียด"].trim(),
-                    "No.": JotNote[i][l]["ลำดับที่ (No.)"].trim(),
+                    "No.": JotNote[i][l]["ลำดับที่"].trim(),
                     "From Agenda": [agendaID[i]]
                   }
                 }
@@ -359,7 +362,7 @@ app.post("/jotform/hooks", async function(req, res) {
         console.log(chunk);
         let j = 0;
         let k = 0;
-        
+
         while (chunk.length - k > 0) {
           console.log("resultLayout-k =" + (chunk.length - k));
           console.log("j = " + j);
@@ -398,16 +401,16 @@ app.post("/jotform/hooks", async function(req, res) {
           if (JotDecision[i] != "") {
             console.log(
               "JotDecision agenda " +
-                (i + 1) +
-                ".length = " +
-                JotDecision[i].length
-                );
+              (i + 1) +
+              ".length = " +
+              JotDecision[i].length
+            );
             for (var l = 0; l < JotDecision[i].length; l++) {
               let layout = [
                 {
                   fields: {
                     "Decision Name": JotDecision[i][l]["รายละเอียด"].trim(),
-                    "No.": JotDecision[i][l]["ลำดับที่ (No.)"].trim(),
+                    "No.": JotDecision[i][l]["ลำดับที่"].trim(),
                     "From Agenda": [agendaID[i]]
                   }
                 }
@@ -464,7 +467,7 @@ app.post("/jotform/hooks", async function(req, res) {
               let layout = [
                 {
                   fields: {
-                    "No.": JotTask[agenda][m]["ลำดับที่ (No.)"].trim(),
+                    "No.": JotTask[agenda][m]["ลำดับที่"].trim(),
                     "Responsible Person": JotTask[agenda][m]["ผู้รับผิดชอบ"].trim(),
                     Task: JotTask[agenda][m]["งานที่ทำต่อ"].trim(),
                     Deadline: JotTask[agenda][m]["วันส่งงาน"],
@@ -482,7 +485,7 @@ app.post("/jotform/hooks", async function(req, res) {
         console.log(chunk);
         let j = 0;
         let k = 0;
-        
+
         while (chunk.length - k > 0) {
           console.log("resultLayout-k =" + (chunk.length - k));
           console.log("j = " + j);
@@ -506,7 +509,7 @@ app.post("/jotform/hooks", async function(req, res) {
       console.log(err);
     });
   }
-  
+
   //put 'RESULT' into layout
   function ResultLayout(JotResult) {
     //console.log("JotResult"+i +" = ");
@@ -520,7 +523,7 @@ app.post("/jotform/hooks", async function(req, res) {
         console.log("JotResult.length = " + JotResult.length);
         for (var i = 0; i < JotResult.length; i++) {
           let completedDate = "";
-          if (JotResult[i]["สถานะที่จะอัพเดท"] == "Completed") {
+          if (JotResult[i]["สถานะที่อัพเดท"] == "Completed") {
             completedDate =
             JotResult[i]["วันที่ทำเสร็จ (สำหรับสถานะ completed เท่านั้น)"];
           }
@@ -532,13 +535,13 @@ app.post("/jotform/hooks", async function(req, res) {
               fields: {
                 "Result Name": JotResult[i]["รายละเอียดการอัพเดท"]
                 .toString()
-                  .trim(),
+                .trim(),
                 "from Task": [
                   JotResult[i]["ชื่อเรื่องติดตาม"].toString().trim()
                 ],
                 "Followed-up In Meeting": [meetingID.toString()],
                 "Task Status at Meeting Time": JotResult[i][
-                  "สถานะที่จะอัพเดท"
+                  "สถานะที่อัพเดท"
                 ].toString(),
                 "Completed Date": completedDate
               }
@@ -546,7 +549,7 @@ app.post("/jotform/hooks", async function(req, res) {
           ];
           //console.log(JSON.stringify(layout));
           chunk = chunk.concat(layout);
-          
+
           // //floor i
           // let k = Math.floor(i/10);
           // console.log("k = " + k);
@@ -586,7 +589,7 @@ app.post("/jotform/hooks", async function(req, res) {
     //console.log("JotResult"+i +" = ");
     //console.log(JotResult[i]);
     //console.log("taskID"+i +" = " + taskID[i]);
-    
+
     return new Promise((resolve, reject) => {
       if (JotResult) {
         let chunk = [];
@@ -597,7 +600,7 @@ app.post("/jotform/hooks", async function(req, res) {
             {
               id: taskID[i],
               fields: {
-                Status: JotResult[i]["สถานะที่จะอัพเดท"].trim()
+                Status: JotResult[i]["สถานะที่อัพเดท"].trim()
               }
             }
           ];
@@ -689,7 +692,7 @@ app.post("/jotform/hooks", async function(req, res) {
         base(baseName).create(dataGroup, { typecast: true }, function(
           err,
           records
-          ) {
+        ) {
           if (err) {
             console.error(err);
             return;
@@ -702,9 +705,9 @@ app.post("/jotform/hooks", async function(req, res) {
               " from base " +
               baseName +
               " is CREATED!"
-              );
-            });
-            console.log("allRecord = ");
+            );
+          });
+          console.log("allRecord = ");
           console.log(allRecord);
           resolve(allRecord);
         });
@@ -715,13 +718,13 @@ app.post("/jotform/hooks", async function(req, res) {
       console.log(err);
     });
   }
-  
+
   //USE THIS FUNCTION WITH ALL RECORD SETS!!!!!
   function RecordUpdate(baseName, dataGroup) {
     //test OK!
     console.log("dataGroup = ");
     console.log(dataGroup);
-    
+
     return new Promise((resolve, reject) => {
       let text = "";
       if (dataGroup) {
@@ -750,164 +753,164 @@ app.post("/jotform/hooks", async function(req, res) {
       console.log(err);
     });
   }
-  
+
   //USE THIS FUNCTION WITH ALL RECORD SETS!!!!!
   function RetriveID(baseName, taskName, meetingID) {
     return new Promise((resolve, reject) => {
       if (taskName) {
         //find an existing Task recordID from AIRTABLE_BASE_ID
         base(baseName)
-          .select({
-            maxRecords: 1,
-            fields: ["Next Action Name"],
-            view: "Grid_Not_Complete_Task",
-            filterByFormula: taskName.toString()
-          })
-          .all()
-          .then(records => {
-            records.forEach(item => {
-              console.log(item);
-              //    taskID = taskID.concat(item.id)
-              //      console.log("taskID = " + taskID);
-              resolve(item.id);
-            });
+        .select({
+          maxRecords: 1,
+          fields: ["Next Action Name"],
+          view: "Grid_Not_Complete_Task",
+          filterByFormula: taskName.toString()
+        })
+        .all()
+        .then(records => {
+          records.forEach(item => {
+            console.log(item);
+            //    taskID = taskID.concat(item.id)
+            //      console.log("taskID = " + taskID);
+            resolve(item.id);
           });
-        } else {
-          reject(console.log("can't find Task matching your searches"));
-        }
+        });
+      } else {
+        reject(console.log("can't find Task matching your searches"));
+      }
     }).catch(err => {
-        console.log(err);
-      });
+      console.log(err);
+    });
   }
-    
 
 
   //============================== RUN FUNCTIONS ==============================
-    
-    //---------------(WORKS!) CREATE 'AGENDA' RECORDS then retrive AGENDA IDs------------------------
-    if (allAgendas.some(IsNotEmpty)) {
-      agendaLayout = agendaLayout.concat(
-        await AgendaLayout(meetingID, allAgendas)
+
+  //---------------(WORKS!) CREATE 'AGENDA' RECORDS then retrive AGENDA IDs------------------------
+  if (allAgendas.some(IsNotEmpty)) {
+    agendaLayout = agendaLayout.concat(
+      await AgendaLayout(meetingID, allAgendas)
+    );
+    console.log("agendaLayout = ");
+    console.log(agendaLayout[0]);
+    console.log("agendaLayout length = " + agendaLayout.length);
+
+    let agendaRecord = [];
+    for (var l = 0; l < agendaLayout.length; l++) {
+      agendaRecord = agendaRecord.concat(
+        await RecordCreate("Meeting Agenda", agendaLayout[0][l])
       );
-      console.log("agendaLayout = ");
-      console.log(agendaLayout[0]);
-      console.log("agendaLayout length = " + agendaLayout.length);
-      
-      let agendaRecord = [];
-      for (var l = 0; l < agendaLayout.length; l++) {
-        agendaRecord = agendaRecord.concat(
-          await RecordCreate("Meeting Agenda", agendaLayout[0][l])
-          );
-      }
-      console.log("agendaRecord = ");
-      console.log(agendaRecord);
-  
-      console.log("agendaRecord.length = " + agendaRecord.length);
-      for (var i = 0; i < agendaRecord.length; i++) {
-        let index = allAgendas.indexOf(agendaRecord[i]["fields"]["Agenda Name"]);
-        agendaID[index] = agendaRecord[i]["id"];
-      }
-      console.log("agendaID = ");
-      console.log(agendaID);
     }
-  
-    //---------------(WORKS!) CREATE 'NOTE' RECORDS------------------------
-    if (JotNote.some(IsNotEmpty)) {
-      noteLayout = noteLayout.concat(await NoteLayout(JotNote, agendaID));
-      console.log("noteLayout = ");
-      console.log(noteLayout[0]);
-      console.log("noteLayout length = " + noteLayout.length);
-  
-      for (var l = 0; l < noteLayout.length; l++) {
-        await RecordCreate("Note", noteLayout[0][l]);
-      }
+    console.log("agendaRecord = ");
+    console.log(agendaRecord);
+
+    console.log("agendaRecord.length = " + agendaRecord.length);
+    for (var i = 0; i < agendaRecord.length; i++) {
+      let index = allAgendas.indexOf(agendaRecord[i]["fields"]["Agenda Name"]);
+      agendaID[index] = agendaRecord[i]["id"];
     }
-  
-    //---------------(WORKS!) CREATE 'DECISION' RECORDS------------------------
-    if (JotDecision.some(IsNotEmpty)) {
-      decisionLayout = decisionLayout.concat(
-        await DecisionLayout(JotDecision, agendaID)
+    console.log("agendaID = ");
+    console.log(agendaID);
+  }
+
+  //---------------(WORKS!) CREATE 'NOTE' RECORDS------------------------
+  if (JotNote.some(IsNotEmpty)) {
+    noteLayout = noteLayout.concat(await NoteLayout(JotNote, agendaID));
+    console.log("noteLayout = ");
+    console.log(noteLayout[0]);
+    console.log("noteLayout length = " + noteLayout.length);
+
+    for (var l = 0; l < noteLayout.length; l++) {
+      await RecordCreate("Note", noteLayout[0][l]);
+    }
+  }
+
+  //---------------(WORKS!) CREATE 'DECISION' RECORDS------------------------
+  if (JotDecision.some(IsNotEmpty)) {
+    decisionLayout = decisionLayout.concat(
+      await DecisionLayout(JotDecision, agendaID)
+    );
+    console.log("decisionLayout = ");
+    console.log(decisionLayout[0]);
+    console.log("decisionLayout length = " + decisionLayout.length);
+
+    for (var l = 0; l < decisionLayout.length; l++) {
+      await RecordCreate("Decision", decisionLayout[0][l]);
+    }
+  }
+
+  //---------------(WORKS!) CREATE 'TASK' RECORDS------------------------
+  if (JotTaskKey.length >0) {
+    taskLayout = taskLayout.concat(await TaskLayout(JotTask, agendaID));
+    console.log("taskLayout = ");
+    console.log(taskLayout[0]);
+    console.log("taskLayout length = " + taskLayout.length);
+
+    for (var l = 0; l < taskLayout.length; l++) {
+      await RecordCreate("Task", taskLayout[0][l]);
+    }
+  }
+
+  //---------------(WORKS!) CREATE 'RESULT' RECORDS------------------------
+  if (JotResult.some(IsNotEmpty)) {
+    resultLayout = resultLayout.concat(await ResultLayout(JotResult));
+    console.log("resultLayout = ");
+    console.log(resultLayout[0]);
+    console.log("resultLayout length = " + resultLayout.length);
+
+    //create resultRecord
+    for (var l = 0; l < resultLayout.length; l++) {
+      await RecordCreate("Result", resultLayout[0][l]);
+    }
+  }
+
+  //---------------UPDATE 'EXISTING TASK' RECORDS------------------------
+  if (JotResult.some(IsNotEmpty)) {
+    for (var i = 0; i < JotResult.length; i++) {
+      console.log(
+        "Update existing task loop " + (i + 1) + " of " + JotResult.length
       );
-      console.log("decisionLayout = ");
-      console.log(decisionLayout[0]);
-      console.log("decisionLayout length = " + decisionLayout.length);
-  
-      for (var l = 0; l < decisionLayout.length; l++) {
-        await RecordCreate("Decision", decisionLayout[0][l]);
-      }
-    }
-  
-    //---------------(WORKS!) CREATE 'TASK' RECORDS------------------------
-    if (JotTaskKey.length >0) {
-      taskLayout = taskLayout.concat(await TaskLayout(JotTask, agendaID));
-      console.log("taskLayout = ");
-      console.log(taskLayout[0]);
-      console.log("taskLayout length = " + taskLayout.length);
-  
-      for (var l = 0; l < taskLayout.length; l++) {
-        await RecordCreate("Task", taskLayout[0][l]);
-      }
-    }
-  
-    //---------------(WORKS!) CREATE 'RESULT' RECORDS------------------------
-    if (JotResult.some(IsNotEmpty)) {
-      resultLayout = resultLayout.concat(await ResultLayout(JotResult));
-      console.log("resultLayout = ");
-      console.log(resultLayout[0]);
-      console.log("resultLayout length = " + resultLayout.length);
-  
-      //create resultRecord
-      for (var l = 0; l < resultLayout.length; l++) {
-        await RecordCreate("Result", resultLayout[0][l]);
-      }
-    }
-  
-    //---------------UPDATE 'EXISTING TASK' RECORDS------------------------
-    if (JotResult.some(IsNotEmpty)) {
-      for (var i = 0; i < JotResult.length; i++) {
-        console.log(
-          "Update existing task loop " + (i + 1) + " of " + JotResult.length
-        );
-        var taskName =
-          "{Next Action Name} = " +
-          "'" +
-          JotResult[i]["ชื่อเรื่องติดตาม"].trim() +
-          "'";
-        console.log("taskname = " + taskName);
-  
-        taskID = taskID.concat(await RetriveID("Task", taskName, meetingID));
-        console.log("taskID = " + taskID);
-      }
-  
-      existTaskLayout = existTaskLayout.concat(
-        await ExistTaskLayout(JotResult, taskID)
-      );
-      console.log("existTaskLayout = ");
-      console.log(existTaskLayout[0]);
-      console.log("existTaskLayout length = " + existTaskLayout.length);
-  
-      for (var l = 0; l < existTaskLayout.length; l++) {
-        var updateResult = await RecordUpdate("Task", existTaskLayout[0][l]);
-        console.log(updateResult);
-      }
-    }
-  
-    //---------------(WORKS!) UPDATE 'MEETING FRON GCAL' RECORD------------------------
-    if (meetingID) {
-      var recordUpdateOutput = await RecordUpdate(
-        "Meeting from Gcal",
-        await MeetingLayout(meetingID)
-      );
-      console.log(recordUpdateOutput);
+      var taskName =
+      "{Next Action Name} = " +
+      "'" +
+      JotResult[i]["ชื่อเรื่องติดตาม"].trim() +
+      "'";
+      console.log("taskname = " + taskName);
+
+      taskID = taskID.concat(await RetriveID("Task", taskName, meetingID));
+      console.log("taskID = " + taskID);
     }
 
+    existTaskLayout = existTaskLayout.concat(
+      await ExistTaskLayout(JotResult, taskID)
+    );
+    console.log("existTaskLayout = ");
+    console.log(existTaskLayout[0]);
+    console.log("existTaskLayout length = " + existTaskLayout.length);
 
+    for (var l = 0; l < existTaskLayout.length; l++) {
+      var updateResult = await RecordUpdate("Task", existTaskLayout[0][l]);
+      console.log(updateResult);
+    }
+  }
+
+  //---------------(WORKS!) UPDATE 'MEETING FRON GCAL' RECORD------------------------
+  if (meetingID) {
+    var recordUpdateOutput = await RecordUpdate(
+      "Meeting from Gcal",
+      await MeetingLayout(meetingID)
+    );
+    console.log(recordUpdateOutput);
+  }
 
 
   res.send(recordUpdateOutput).end();
 });
 
+
+
 // listen for requests :)
-app.listen(process.env.PORT, () => {
-  console.log("Your app is listening on port " + process.env.PORT);
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log("Your app is listening on port " + port);
 });
